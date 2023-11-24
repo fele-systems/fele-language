@@ -31,7 +31,8 @@ public class MainTest {
         "256+1*10,266",
         "(256+1)*10,2570",
         "100-10*10,0",
-        "(100-10)*10,90"
+        "(100-10)*10,900",
+        "4*6/8,3"
     })
     void testOperatorPrecedence(String expression, int expectedResult) {
         var parser = new Parser(expression);

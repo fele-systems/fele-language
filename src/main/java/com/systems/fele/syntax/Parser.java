@@ -169,6 +169,44 @@ public class Parser {
 	 	}
 	}
 	
+	/**
+	 * This function expects the curret token to be pointed at the OPEN_PARENTHESIS token
+	 * of the function call. The callee should've been parsed by another of the parseNext
+	 * functions.
+	 * @param callee The callee of this function call expression
+	 * @return Object of type {@link FunctionCallNode}
+	 */
+	private AbstractSyntaxTreeNode parseNextFunctionCall(AbstractSyntaxTreeNode callee) {
+
+		// Discards the open parenthesis
+		expectCurrent(TokenKind.OPEN_PARENTHESIS);
+		advance();
+
+		List<AbstractSyntaxTreeNode> arguments = new ArrayList<>();
+
+		// Parse arguments until close parenthesis
+		while (current().kind() != TokenKind.CLOSE_PARENTHESIS) {
+			arguments.add(parseNextExpression());
+			if (current().kind() == TokenKind.COLON)
+				advance();
+		 	else
+		 		expectCurrent(TokenKind.CLOSE_PARENTHESIS);
+		}
+
+		advance(); // Close parenthesis
+
+		var functionCallNode = new FunctionCallNode(callee, arguments);
+
+		if (current().kind() == TokenKind.OPERATOR) {
+ 			var operatorToken = current();
+		 	advance();
+			var rhs = parseNext();
+	 		return new BinaryOperatorNode(functionCallNode, rhs, operatorToken);
+		}
+
+	 	return functionCallNode; 
+	}
+
 	private AbstractSyntaxTreeNode parseNext() {
 		
 		AbstractSyntaxTreeNode node = null;
@@ -177,28 +215,13 @@ public class Parser {
 			if (current().kind() == TokenKind.OPERATOR) {
 				node = parseNextBinaryOperator(node);
 			} else if(current().kind() == TokenKind.OPEN_PARENTHESIS) {
-		 		advance();
-		 		List<AbstractSyntaxTreeNode> arguments = new ArrayList<>();
-		 		while (current().kind() != TokenKind.CLOSE_PARENTHESIS) {
-		 			arguments.add(parseNextExpression());
-		 			if (current().kind() == TokenKind.COLON)
-		 				advance();
-		 			else
-		 				expectCurrent(TokenKind.CLOSE_PARENTHESIS);
-		 		}
-		 		advance(); // Close parenthesis
-		 		var functionCallNode = new FunctionCallNode(node.getSourceToken(), arguments); // FIXME: There isnt always sure theres only on token in node
-		 		if (current().kind() == TokenKind.OPERATOR) {
-		 			var operatorToken = current();
-		 			advance();
-			 		var rhs = parseNext();
-			 		return new BinaryOperatorNode(functionCallNode, rhs, operatorToken);
-			 	}
-
-		 		return functionCallNode; 
+		 		node = parseNextFunctionCall(node);
 			}
 		} else if (current().kind() == TokenKind.OPEN_PARENTHESIS) {
 			node = parseNextParenthesis();
+			if (current().kind() == TokenKind.OPERATOR) {
+				node = parseNextBinaryOperator(node);
+			} 
 		} else if (current().kind() == TokenKind.OPERATOR) {
 			if (current().isAssignment()) {
 				node = parseAssignmentOperator(node);
@@ -256,7 +279,7 @@ public class Parser {
 	 		if (rhs instanceof BinaryOperatorNode nextOperator && nextOperator.getOperatorType().getPrecedence() <= operatorType.getPrecedence()) {
 	 			
 	 			var thisOperator = new BinaryOperatorNode(lhs, nextOperator.getLhs(), operatorToken);
-	 			return new BinaryOperatorNode(nextOperator.getRhs(), thisOperator, nextOperator.getSourceToken());
+	 			return new BinaryOperatorNode(thisOperator, nextOperator.getRhs(), nextOperator.getSourceToken());
 	 		}
 	 		return new BinaryOperatorNode(lhs, rhs, operatorToken);
 	 	} else {

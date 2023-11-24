@@ -8,12 +8,17 @@ import com.systems.fele.syntax.Context;
 import com.systems.fele.syntax.Token;
 import com.systems.fele.syntax.function.FunctionSymbol;
 
+/**
+ * Represents a function node in the AST. Hols both the callee and arguments expressions
+ */
 public class FunctionCallNode extends AbstractSyntaxTreeNode {
 
-	private List<AbstractSyntaxTreeNode> arguments;
+	private final List<AbstractSyntaxTreeNode> arguments;
+	private final AbstractSyntaxTreeNode callee;
 
-	public FunctionCallNode(Token sourceToken, List<AbstractSyntaxTreeNode> arguments) {
-		super(sourceToken);
+	public FunctionCallNode(AbstractSyntaxTreeNode callee, List<AbstractSyntaxTreeNode> arguments) {
+		super(callee.sourceToken);
+		this.callee = callee;
 		this.arguments = arguments;
 	}
 
@@ -23,8 +28,18 @@ public class FunctionCallNode extends AbstractSyntaxTreeNode {
 
 	}
 	
+	/**
+	 * Returns the function name
+	 * @deprecated Use getCallee instead, as later the callee could be a compount expression
+	 * @return function name
+	 */
+	@Deprecated
 	public String getFuncitonName() {
-		return getSourceToken().text();
+		return callee.toString();
+	}
+
+	public AbstractSyntaxTreeNode getCallee() {
+		return callee;
 	}
 
 	public List<AbstractSyntaxTreeNode> getArguments() {
