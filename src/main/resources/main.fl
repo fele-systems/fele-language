@@ -1,0 +1,10 @@
+F32 pi() {
+	ret 3.14;
+}
+
+I32 main(Char[] arg) {
+	let i = 10;
+	let r = pi() * i;
+	writefln(r);
+	ret r;
+}
