@@ -1,7 +1,6 @@
 package com.systems.fele.machine;
 
 import java.io.PrintStream;
-import java.util.Stack;
 
 public class AbstractMachine {
 	
@@ -13,7 +12,7 @@ public class AbstractMachine {
 
 	public AbstractMachine() {
 		
-	}
+	}	
 	
 	public void pushStackFrame(StackFrame frame) {
 		stack[--basePointer] = frame;

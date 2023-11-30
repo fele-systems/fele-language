@@ -2,7 +2,6 @@ package com.systems.fele.syntax;
 
 import java.io.PrintStream;
 
-import com.systems.fele.machine.AbstractMachineValue;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
 
 public class AbstractSyntaxTree {

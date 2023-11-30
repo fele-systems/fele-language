@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.Context;
-import com.systems.fele.syntax.ParseContext;
 import com.systems.fele.syntax.Token;
 
 public class FunctionDeclarationNode extends AbstractSyntaxTreeNode {
@@ -31,5 +30,19 @@ public class FunctionDeclarationNode extends AbstractSyntaxTreeNode {
 	public AbstractMachineType evaluateType(Context context) {
 		return AbstractMachineType.VOID;
 	}
+
+	public AbstractSyntaxTreeNode getReturnType() {
+		return returnType;
+	}
+
+	public List<VariableDeclarationNode> getParameters() {
+		return parameters;
+	}
+
+	public List<AbstractSyntaxTreeNode> getBody() {
+		return body;
+	}
+
+	
 	
 }

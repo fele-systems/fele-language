@@ -15,7 +15,6 @@ import com.systems.fele.machine.instr.SubInstr;
 import com.systems.fele.syntax.AbstractSyntaxTree;
 import com.systems.fele.syntax.Context;
 import com.systems.fele.syntax.ParseContext;
-import com.systems.fele.syntax.SymbolType;
 import com.systems.fele.syntax.function.FunctionSymbol;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
 import com.systems.fele.syntax.tree.AssignmentNode;

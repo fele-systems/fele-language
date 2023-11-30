@@ -30,6 +30,10 @@ public class FunctionalCallNode extends AbstractSyntaxTreeNode {
 			case Symbol s -> throw new RuntimeException("Calling a non function identifier. Expected: function. Got: " + s.getSymbolType());
 		};
 	}
-	
 
+	public List<AbstractSyntaxTreeNode> getArguments() {
+		return arguments;
+	}
+	
+	
 }

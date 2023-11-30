@@ -1,6 +1,5 @@
 package com.systems.fele.machine.instr;
 
-import com.systems.fele.machine.AbstractMachine;
 import com.systems.fele.machine.AbstractMachineFunction;
 import com.systems.fele.machine.AbstractMachineInstruction;
 import com.systems.fele.machine.AbstractMachineValue;

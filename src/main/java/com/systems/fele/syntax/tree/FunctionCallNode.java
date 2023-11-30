@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.Context;
-import com.systems.fele.syntax.Token;
 import com.systems.fele.syntax.function.FunctionSymbol;
 
 /**

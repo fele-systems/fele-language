@@ -5,7 +5,6 @@ import java.io.PrintStream;
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.machine.AbstractMachineValue;
 import com.systems.fele.syntax.Context;
-import com.systems.fele.syntax.ParseContext;
 import com.systems.fele.syntax.Token;
 import com.systems.fele.syntax.TokenKind;
 
