@@ -47,11 +47,15 @@ public class FunctionCallNode extends AbstractSyntaxTreeNode {
 	
 	@Override
 	public AbstractMachineType evaluateType(Context context) {
-		return switch(context.findSymbol(getFuncitonName())) {
-			case FunctionSymbol f -> f.getReturnType();
-			case null -> throw new RuntimeException(getFuncitonName() + ": no such function.");
-			default -> throw new RuntimeException(getFuncitonName() + " is not a function.");
-		};
+		var symbol = context.findSymbol(getFuncitonName());
+
+		if (symbol instanceof FunctionSymbol functionSymbol) {
+			return functionSymbol.getReturnType();
+		} else if (symbol == null) {
+			throw new RuntimeException(getFuncitonName() + ": no such function.");
+		} else {
+			throw new RuntimeException(getFuncitonName() + " is not a function.");
+		}
 	}
 
 }
