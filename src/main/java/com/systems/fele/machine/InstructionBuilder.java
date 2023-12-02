@@ -53,8 +53,7 @@ public class InstructionBuilder {
 	 * @param context
 	 */
 	private void buildNextNode(AbstractMachineFunction amContext, AbstractSyntaxTreeNode node, Context context) {
-		switch (node) {
-		case BinaryOperatorNode binaryOperator ->
+		if (node instanceof BinaryOperatorNode binaryOperator)
 		{
 			var amType = binaryOperator.evaluateType(context);
 			var instrType = amType.instrType();
@@ -80,22 +79,22 @@ public class InstructionBuilder {
 
 			instructions.add(instr);
 		}	
-		case NumberLiteralNode numberLiteral ->
+		else if (node instanceof NumberLiteralNode numberLiteral)
 		{
 			var instr = new LoadCInstr(numberLiteral.evaluateType(context).instrType(), numberLiteral);
 			instructions.add(instr);
 		}
-		case ParenthesisNode parenthesis ->
+		else if (node instanceof ParenthesisNode parenthesis)
 		{
 			buildNextNode(amContext, parenthesis.getInnerNode(), context);
 		}
-		case IdentifierReferenceNode identifierRef ->
+		else if (node instanceof IdentifierReferenceNode identifierRef)
 		{
 			var sym = context.findSymbol(identifierRef.getSourceToken().text());
 			var instr = new LoadLInstr(identifierRef.evaluateType(context).instrType(), identifierRef, amContext.getLocalIndex(sym.getName()));
 			instructions.add(instr);
 		}
-		case AssignmentNode assign ->
+		else if (node instanceof  AssignmentNode assign)
 		{
 			var sym = (LocalVariableSymbol) context.defineVariable(assign.getLhs().getSourceToken().text(), assign.evaluateType(context));
 			if (sym == null) {
@@ -107,7 +106,7 @@ public class InstructionBuilder {
 			var storeInstr = new StoreLInstr(assign, sym.getAbstractMachineType().instrType(), amContext.getLocalIndex(sym.getName()));
 			instructions.add(storeInstr);
 		}
-		case ReturnNode returnNode ->
+		else if (node instanceof ReturnNode returnNode)
 		{
 			if (returnNode.getExpression() != null) {
 				buildNextNode(amContext, returnNode.getExpression(), context);
@@ -118,7 +117,7 @@ public class InstructionBuilder {
 				if (returnActualType != returnExpectedType) instructions.add(new CastInstr(null, returnActualType.instrType(), returnExpectedType.instrType()));
 			}
 		}
-		case FunctionCallNode functionCall ->
+		else if (node instanceof FunctionCallNode functionCall)
 		{
 			var fSymbol = (FunctionSymbol) context.findSymbol(functionCall.getFuncitonName());
 			var args = functionCall.getArguments();
@@ -140,7 +139,8 @@ public class InstructionBuilder {
 				instructions.add(new CallInstr(functionCall, fSymbol));
 			}
 		}
-		default -> throw new IllegalArgumentException("Unexpected value: " + node);
+		else {
+			throw new IllegalArgumentException("Unexpected value: " + node);
 		}
 	}
 

@@ -25,10 +25,13 @@ public class FunctionalCallNode extends AbstractSyntaxTreeNode {
 
 	@Override
 	public AbstractMachineType evaluateType(Context context) {
-		return switch(context.findSymbol(sourceToken.text())) {
-			case FunctionSymbol f -> f.getReturnType();
-			case Symbol s -> throw new RuntimeException("Calling a non function identifier. Expected: function. Got: " + s.getSymbolType());
-		};
+		var symbol = context.findSymbol(sourceToken.text());
+
+		if (symbol instanceof FunctionSymbol functionSymbol) {
+			return functionSymbol.getReturnType();
+		} else {
+			throw new RuntimeException("Calling a non function identifier. Expected: function. Got: " + symbol.getSymbolType());
+		}
 	}
 
 	public List<AbstractSyntaxTreeNode> getArguments() {
