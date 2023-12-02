@@ -1,8 +1,10 @@
 package com.systems.fele.parser;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.systems.fele.syntax.Token;
 
@@ -18,35 +20,88 @@ public class ParseErrorFormatter {
         this.tokenLine = getTokenLine();
     }
 
-    public void printRelatedLines(PrintStream printTo) {
-        int start = getLineStart(highlightedToken.pos());
-        int end = getLineEnd(highlightedToken.pos());
-        String line = sourceCode.substring(start, end);
-        
-        String lineNoStr = String.valueOf(tokenLine);
-        int positionInLine = highlightedToken.pos() - start + 2 + lineNoStr.length();
-        
-        printTo.print(' ');
-        printTo.print(lineNoStr);
-        printTo.print('|');
-        printTo.println(line);
+    public void printRelatedLines(Writer writer, int linesUp, int linesDown) {
+        try {
+            // Width of the line numbers column
+            final var lineNoPadding = String.valueOf(tokenLine + linesUp).length();
 
-        printTo.print(' ');
-        printTo.print(lineNoStr);
-        printTo.print('|');
-        for (int i = 0; i < positionInLine; i++) {
-            printTo.print(' ');
+            // Calculates the current token line's start and end
+            final int start = getLineStart(highlightedToken.pos());
+            final int end = getLineEnd(highlightedToken.pos());
+            
+            // We need to print the lines in the reverse order they were found, so we put them onto a list
+            final List<String> previousLines = new ArrayList<>();
+            int prevLineStart = start - 1;
+            while (linesUp > 0) {
+                final int prevLineEnd = prevLineStart-1;
+                if (prevLineEnd < 0) break;
+                prevLineStart = getLineStart(prevLineStart-1);
+                previousLines.add(sourceCode.substring(prevLineStart, prevLineEnd));
+                linesUp--;
+            }
+
+            // Now print them
+            for (int i = 0; i < previousLines.size(); i++) {
+                printLine(tokenLine + i - previousLines.size(),
+                        lineNoPadding,
+                        previousLines.get(previousLines.size() - i - 1),
+                        writer);
+            }
+
+            // Print the actual token line
+            final String line = sourceCode.substring(start, end);
+            final int positionInLine = highlightedToken.pos() - start;
+            printLine(tokenLine,
+                    lineNoPadding,
+                    line,
+                    writer);
+            
+            // Highlights the acused token
+            // TODO:Medium Normalize tabulations
+            for (int i = 0; i < positionInLine + lineNoPadding + 1; i++) {
+                writer.append('~');
+            }
+            
+            writer.append('^');
+            writer.append('\n');
+            
+            // Now, print the lower lines
+            int nextLineStart = end + 1;
+            int currentNextLine = tokenLine + 1;
+            while (linesDown > 0) {
+                if (nextLineStart >= sourceCode.length()) break;
+                int nextLineEnd = getLineEnd(nextLineStart);
+                if (nextLineEnd < 0) nextLineEnd = sourceCode.length();
+                printLine(currentNextLine++,
+                        lineNoPadding,
+                        sourceCode.substring(nextLineStart, nextLineEnd),
+                        writer);
+                nextLineStart = nextLineEnd + 1;
+                linesDown--;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error while formatting source code for error reporting", e);
         }
-        // FIXME:Low This pointer needs adjusting. Some time goes to ealy sometimes to late
-        printTo.print('^');
+    }
+
+    private void printLine(int lineNo, int lineNoPadding, String line, Writer writer) throws IOException {
+        var lineNoStr = String.valueOf(lineNo);
+        var paddedCharNumber = lineNoPadding - lineNoStr.length();
+        for (int i = 0; i < paddedCharNumber; i++) {
+            writer.append(' ');
+        }
+        
+        writer.append(lineNoStr);
+        writer.append('|');
+        writer.append(line);
+        writer.append('\n');
+        writer.flush();
     }
 
     public String getMessage() {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream ps = new PrintStream(baos, true, StandardCharsets.UTF_8)) {
-            printRelatedLines(ps);
-        }
-        return baos.toString(StandardCharsets.UTF_8);
+        StringWriter writer = new StringWriter();
+        printRelatedLines(writer, 3, 3);
+        return writer.toString();
     }
 
     private int getTokenLine() {

@@ -7,8 +7,7 @@ import java.util.function.Predicate;
 
 import com.systems.fele.machine.AbstractMachineFunction;
 import com.systems.fele.machine.AbstractMachineType;
-import com.systems.fele.parser.ParseErrorFormatter;
-import com.systems.fele.parser.ParseException;
+import com.systems.fele.parser.UnexpectedTokenException;
 import com.systems.fele.syntax.ParseContext.ContextType;
 import com.systems.fele.syntax.function.FunctionParameter;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
@@ -65,8 +64,7 @@ public class Parser {
 				if (current().kind() == TokenKind.OPEN_PARENTHESIS) {
 					parseNextFunctionDeclaration(program, compileUnit, returnType, functionName, functionContext);
 				} else {
-					var formatter = new ParseErrorFormatter(lexer.getSource(), current());
-					throw new ParseException("Expected open parenthesis at function declaration. Got: %s. Parsing: %n%s".formatted(current().kind(), formatter.getMessage()));
+					throw new UnexpectedTokenException("Expected open parenthesis at function declaration", lexer.getSource(), current());
 				}
 			}
 			
@@ -157,7 +155,7 @@ public class Parser {
 					return returnNode;
 				}
 			default:
-				throw new ParseException("Unhandled keyword: %n%s".formatted(new ParseErrorFormatter(lexer.getSource(), current())));
+				throw new UnexpectedTokenException("Unhandled keyword '%s'".formatted(current().text()), lexer.getSource(), current());
 			}
 		} else {
 			var nextExpression = parseNextExpression();
@@ -168,15 +166,13 @@ public class Parser {
 	
 	private void expectCurrent(TokenKind kind) {
 		if (current().kind() != kind) {
-			var formatter = new ParseErrorFormatter(lexer.getSource(), current());
-			throw new ParseException("Unexpected token kind: %s. Expected: %s. Parsing: %n%s".formatted(current(), kind, formatter.getMessage()));
+			throw new UnexpectedTokenException(kind, lexer.getSource(), current());
 		}
 	}
 	
 	private void expectCurrent(Predicate<Token> kind, String message) {
 		if (!kind.test(current())) {
-			var formatter = new ParseErrorFormatter(lexer.getSource(), current());
-			throw new ParseException(message.formatted(current()) + '\n' + formatter.getMessage());
+			throw new UnexpectedTokenException(message, lexer.getSource(), current());
 		}
 	}
 	
@@ -257,7 +253,7 @@ public class Parser {
 				node = parseNextBinaryOperator(node);				
 			}
 		} else {
-			throw new ParseException("Unexpected token: %s".formatted(new ParseErrorFormatter(lexer.getSource(), current())));
+			throw new UnexpectedTokenException(lexer.getSource(), current());
 		}
 		
 		return node;
@@ -281,7 +277,7 @@ public class Parser {
 		advance();
 		var innerNode = parseNext();
 		if(current().kind() != TokenKind.CLOSE_PARENTHESIS) {
-			throw new ParseException("Expected end-of-expression. Got: %n%s".formatted(new ParseErrorFormatter(lexer.getSource(), current())));
+			throw new UnexpectedTokenException(TokenKind.CLOSE_PARENTHESIS, lexer.getSource(), current());
 		}
 		advance();
 		return new ParenthesisNode(innerNode, open);
