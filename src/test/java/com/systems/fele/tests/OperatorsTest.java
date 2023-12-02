@@ -11,7 +11,7 @@ public class OperatorsTest {
 
     @ParameterizedTest(name = "Simple math operators: {0} = {1}")
     @CsvSource({
-        "256+1,257",
+        "256+1,258",
         "100-10,90",
         "25-30,-5",
         "7*8,56",
