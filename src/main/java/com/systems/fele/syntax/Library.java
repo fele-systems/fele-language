@@ -55,7 +55,7 @@ public class Library {
 			}
 		});
 		
-		cu.defineFunction(name, IntStream.range(1, params.length).mapToObj(i -> new FunctionParameter(i, "arg" + i, params[i])).collect(Collectors.toList())
+		cu.defineFunction(name, IntStream.range(1, params.length).mapToObj(i -> new FunctionParameter(i, "arg" + i, params[i], functionContext)).collect(Collectors.toList())
 				, params[0], machineFunction);
 	}
 }
