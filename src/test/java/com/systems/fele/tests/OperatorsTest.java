@@ -7,7 +7,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import com.systems.fele.syntax.Parser;
 
-public class MainTest {
+public class OperatorsTest {
 
     @ParameterizedTest(name = "Simple math operators: {0} = {1}")
     @CsvSource({

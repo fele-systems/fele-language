@@ -22,21 +22,12 @@ public class CompileUnit implements Context {
 
 	@Override
 	public Symbol findSymbol(String name) {
-		// TODO: Fix stack overflow
 		var symbol = symbolTable.findSymbol(name);
 		if (symbol == null) {
-			for (var cu : program.compileUnits) {
-				if (cu == this) continue;
-				
-				symbol = cu.findSymbol(name);
-				if (symbol != null)
-					return symbol;
-			}
+			return program.findGlobalSymbol(name);
 		} else {
 			return symbol;
 		}
-		
-		return null;
 	}
 
 	@Override

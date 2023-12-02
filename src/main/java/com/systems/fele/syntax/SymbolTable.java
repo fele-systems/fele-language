@@ -1,5 +1,6 @@
 package com.systems.fele.syntax;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,5 +19,12 @@ public class SymbolTable {
 
 	public Collection<Symbol> getSymbols() {
 		return symbols.values();
+	}
+
+	public void dumpSymbols(PrintStream os) {
+		for (var s : getSymbols()) {
+			os.printf("%s: %s", s.name, s.symbolType);
+			os.println();
+		}
 	}
 }

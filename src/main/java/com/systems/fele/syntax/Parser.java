@@ -3,6 +3,7 @@ package com.systems.fele.syntax;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -16,8 +17,10 @@ import com.systems.fele.syntax.tree.BinaryOperatorNode;
 import com.systems.fele.syntax.tree.FunctionCallNode;
 import com.systems.fele.syntax.tree.IdentifierReferenceNode;
 import com.systems.fele.syntax.tree.NumberLiteralNode;
+import com.systems.fele.syntax.tree.ParameterNode;
 import com.systems.fele.syntax.tree.ParenthesisNode;
 import com.systems.fele.syntax.tree.ReturnNode;
+import com.systems.fele.syntax.tree.TypeExpressionNode;
 
 public class Parser {
 	
@@ -86,14 +89,25 @@ public class Parser {
 		}
 	}
 	
-	private AbstractSyntaxTreeNode parseTypeExpression() {
-		return null;
+	private TypeExpressionNode parseNextTypeExpression() {
+		expectCurrent(TokenKind.IDENTIFIER);
+		var type = current(); advance();
+	
+		if (current().kind() == TokenKind.OPEN_BRACKETS) {
+			// Is a array type expression
+			expectCurrent(TokenKind.CLOSE_BRACKETS);
+			advance(); advance();
+			return new TypeExpressionNode(type, TypeExpressionNode.Modifier.ARRAY);
+		}
+
+		return new TypeExpressionNode(type, TypeExpressionNode.Modifier.NONE);
 	}
 	
 	private AbstractSyntaxTreeNode parseNextParameter() {
-		var type = new Object();
-		
-		return null;
+		var type = parseNextTypeExpression();
+		expectCurrent(TokenKind.IDENTIFIER);
+		var parameterName = current(); advance();
+		return new ParameterNode(type, parameterName);
 	}
 
 	private AbstractSyntaxTreeNode parseNextStatement(Context context) {

@@ -2,6 +2,7 @@ package com.systems.fele.syntax;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.systems.fele.machine.AbstractMachine;
@@ -9,6 +10,7 @@ import com.systems.fele.machine.AbstractMachineFunction;
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.machine.AbstractMachineValue;
 import com.systems.fele.syntax.function.FunctionSymbol;
+import com.systems.fele.syntax.type.BuiltinTypeSymbol;
 
 public class Program {
 
@@ -30,21 +32,69 @@ public class Program {
 	List<CompileUnit> compileUnits = new ArrayList<>();
 	TypeManager typeManager = TypeManager.withBuiltins();
 	AbstractMachine machine = new AbstractMachine();
+	Context builtinContext = new Context() {
 
+		@Override
+		public String getContextName() {
+			return "compiler_builtins";
+		}
+
+		@Override
+		public Symbol findSymbol(String name) {
+			throw new UnsupportedOperationException("Unimplemented method 'findSymbol'");
+		}
+
+		@Override
+		public Symbol defineSymbol(Symbol symbol) {
+			throw new UnsupportedOperationException("Unimplemented method 'defineSymbol'");
+		}
+
+		@Override
+		public Symbol getAsSymbol() {
+			throw new UnsupportedOperationException("Unimplemented method 'getAsSymbol'");
+		}
+
+		@Override
+		public Collection<Symbol> getDefinedSymbols() {
+			throw new UnsupportedOperationException("Unimplemented method 'getDefinedSymbols'");
+		}
+
+		@Override
+		public Program getProgram() {
+			throw new UnsupportedOperationException("Unimplemented method 'getProgram'");
+		}
+
+		@Override
+		public int getDepth() {
+			throw new UnsupportedOperationException("Unimplemented method 'getDepth'");
+		}
+		
+	};
 	
 	public AbstractMachineFunction getMainFunction() {
+		return findFunction("main").getAbstractMachineContext();
+	}
+
+	public FunctionSymbol findFunction(String name) {
+		return (FunctionSymbol) findGlobalSymbol(name);
+	}
+
+	public Symbol findGlobalSymbol(String name) {
 		for (var cu : compileUnits) {
-			var main = cu.findSymbol("main");
-			if (main == null) continue;
-			
-			if (main instanceof FunctionSymbol f) {
-				return f.getAbstractMachineContext();
-			} else {
-				continue;
-			}
+			var s = cu.symbolTable.findSymbol(name);
+			if (s == null) continue;
+
+			return s;
 		}
+
+		var asType = typeManager.get(name);
+		if (asType != null) {
+			return new BuiltinTypeSymbol(asType, builtinContext);
+		}
+
 		return null;
 	}
+
 	
 	public TypeManager typeManager() {
 		return typeManager;
