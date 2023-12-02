@@ -3,7 +3,6 @@ package com.systems.fele.syntax;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -11,7 +10,6 @@ import com.systems.fele.machine.AbstractMachineFunction;
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.ParseContext.ContextType;
 import com.systems.fele.syntax.function.FunctionParameter;
-import com.systems.fele.syntax.function.FunctionSymbol;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
 import com.systems.fele.syntax.tree.AssignmentNode;
 import com.systems.fele.syntax.tree.BinaryOperatorNode;
@@ -40,11 +38,6 @@ public class Parser {
 		this("inline", source);
 	}
 	
-	public AbstractSyntaxTree parseGlobals() {
-		List<AbstractSyntaxTreeNode> nodes;
-		return null;
-	}
-	
 	public Program parseExpression() {
 		var program = new Program();
 		var compileUnit = new CompileUnit("console", program);
@@ -62,47 +55,14 @@ public class Parser {
 		var compileUnit = new CompileUnit(fileName, program);
 		program.addCompileUnit(compileUnit);
 		while(current().kind() != TokenKind.EOF) {
-			
-			// TODO: Put this in a separated method
 			if (current().kind() == TokenKind.IDENTIFIER && next().kind() == TokenKind.IDENTIFIER) {
-				// It may be a function declararion!
+				// It may be a function declaration!
 				var returnType = fetchToken();
 				var functionName = fetchToken();
 				var functionContext = new ParseContext(functionName.text(), compileUnit, ParseContext.ContextType.FUNCTION);
 				
 				if (current().kind() == TokenKind.OPEN_PARENTHESIS) {
-					advance();
-					
-					var parameterList = new ArrayList<FunctionParameter>();
-					int i = 0;
-					while (current().kind() != TokenKind.CLOSE_PARENTHESIS) {
-						var parameterNode = parseNextParameter();
-
-						var functionParameter = new FunctionParameter(i++, parameterNode.getName(), parameterNode.getType().evaluateType(compileUnit), compileUnit);
-						functionContext.defineSymbol(functionParameter);
-						parameterList.add(functionParameter);
-
-						// FIXME: Does not throw a error if there's no comma
-						if (current().kind() == TokenKind.COMMA) advance();
-					}
-					expectCurrent(TokenKind.CLOSE_PARENTHESIS); advance(); // Close parenthesis
-					expectCurrent(TokenKind.OPEN_BRACES); advance(); // Open braces
-					
-					List<AbstractSyntaxTreeNode> statements = new ArrayList<>();
-					while (current().kind() != TokenKind.CLOSE_BRACES) {
-						statements.add(parseNextStatement(functionContext));
-					}
-					
-					expectCurrent(TokenKind.CLOSE_BRACES); advance(); // Close braces
-					
-					AbstractMachineFunction amc = new AbstractMachineFunction(program.getMachine(), (List<AbstractSyntaxTreeNode>) null, functionContext);
-
-					// parseContext is the CompileUnit. functionContext, the actual function. Do not mix those two
-					functionContext.setSymbol(compileUnit.defineFunction(functionName.text(),
-							parameterList,
-							program.typeManager.get(returnType.text()),
-							amc));
-					amc.setStatements(statements);
+					parseNextFunctionDeclaration(program, compileUnit, returnType, functionName, functionContext);
 				} else {
 					throw new RuntimeException("Expected open parenthesis at function declaration. Got: %s".formatted(current()));
 				}
@@ -110,6 +70,42 @@ public class Parser {
 			}
 			
 		}
+	}
+
+	private void parseNextFunctionDeclaration(Program program, CompileUnit compileUnit, Token returnType, Token functionName,
+			ParseContext functionContext) {
+		advance();
+		
+		var parameterList = new ArrayList<FunctionParameter>();
+		int i = 0;
+		while (current().kind() != TokenKind.CLOSE_PARENTHESIS) {
+			var parameterNode = parseNextParameter();
+
+			var functionParameter = new FunctionParameter(i++, parameterNode.getName(), parameterNode.getType().evaluateType(compileUnit), compileUnit);
+			functionContext.defineSymbol(functionParameter);
+			parameterList.add(functionParameter);
+
+			// FIXME: Does not throw a error if there's no comma
+			if (current().kind() == TokenKind.COMMA) advance();
+		}
+		expectCurrent(TokenKind.CLOSE_PARENTHESIS); advance(); // Close parenthesis
+		expectCurrent(TokenKind.OPEN_BRACES); advance(); // Open braces
+		
+		List<AbstractSyntaxTreeNode> statements = new ArrayList<>();
+		while (current().kind() != TokenKind.CLOSE_BRACES) {
+			statements.add(parseNextStatement(functionContext));
+		}
+		
+		expectCurrent(TokenKind.CLOSE_BRACES); advance(); // Close braces
+		
+		AbstractMachineFunction amc = new AbstractMachineFunction(program.getMachine(), (List<AbstractSyntaxTreeNode>) null, functionContext);
+
+		// parseContext is the CompileUnit. functionContext, the actual function. Do not mix those two
+		functionContext.setSymbol(compileUnit.defineFunction(functionName.text(),
+				parameterList,
+				program.typeManager.get(returnType.text()),
+				amc));
+		amc.setStatements(statements);
 	}
 	
 	private TypeExpressionNode parseNextTypeExpression() {
@@ -149,7 +145,7 @@ public class Parser {
 				return new AssignmentNode(variableName, assignmentOperator, expression);
 			}
 			case "ret":
-				var returnToken = fetchToken(); // discard the "ret" token;
+				var returnToken = fetchToken(); // discard the "ret" token
 				
 				if (current().kind() == TokenKind.SEMICOLON) {
 					return new ReturnNode(returnToken, null);
@@ -171,14 +167,14 @@ public class Parser {
 	
 	private void expectCurrent(TokenKind kind) {
 		if (current().kind() != kind) {
-			List<Token> debugTokens = new ArrayList<Token>();
+			List<Token> debugTokens = new ArrayList<>();
 			for (int i = -4 ; i < 4; i++) {
 				debugTokens.add(peek(i));
 			}
 			
 			throw new RuntimeException("Unexpected token kind: %s. Expected: %s. Parsing: %s".formatted(current(), kind, debugTokens.stream()
 					.filter(token -> token.kind() != TokenKind.EOF)
-					.map(token -> token.text())
+					.map(Token::text)
 					.collect(Collectors.joining(" "))));
 		}
 	}

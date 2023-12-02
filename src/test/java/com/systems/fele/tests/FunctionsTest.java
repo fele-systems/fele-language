@@ -2,18 +2,12 @@ package com.systems.fele.tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Arrays;
-
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import com.systems.fele.interop.FlowFunction;
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.Parser;
 import com.systems.fele.syntax.Program;
-import com.systems.fele.syntax.function.FunctionSymbol;
 
 class FunctionsTest {
     @Test
