@@ -30,6 +30,14 @@ public class ParameterNode extends AbstractSyntaxTreeNode {
         return AbstractMachineType.VOID;
     }
 
+    public TypeExpressionNode getType() {
+        return type;
+    }
+
+    public String getName() {
+        return name.text();
+    }
+
     
 
 }

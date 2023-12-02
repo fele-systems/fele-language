@@ -4,6 +4,7 @@ import java.io.PrintStream;
 
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.Context;
+import com.systems.fele.syntax.SymbolType;
 import com.systems.fele.syntax.Token;
 
 public class TypeExpressionNode extends AbstractSyntaxTreeNode {
@@ -32,9 +33,13 @@ public class TypeExpressionNode extends AbstractSyntaxTreeNode {
 
     @Override
     public AbstractMachineType evaluateType(Context context) {
-        return AbstractMachineType.TYPE;
-    }
-    
-
-    
+        var symbol = context.findSymbol(getSourceToken().text());
+        if (symbol == null) {
+            throw new RuntimeException(symbol.getName() + " does not exist.");
+        } else if (symbol.getSymbolType() != SymbolType.type_definition) {
+            throw new RuntimeException(symbol.getName() + " does not name a type. It is a " + symbol.getSymbolType());
+        } else {
+            return symbol.getAbstractMachineType();
+        }
+    }    
 }

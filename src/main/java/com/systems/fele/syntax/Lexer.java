@@ -45,6 +45,7 @@ public class Lexer {
 			case '}' -> new Token(TokenKind.CLOSE_BRACES, String.valueOf(currentChar), i-1);
 			case '{' -> new Token(TokenKind.OPEN_BRACES, String.valueOf(currentChar), i-1);
 			case ':' -> new Token(TokenKind.COLON, String.valueOf(currentChar), i-1);
+			case ',' -> new Token(TokenKind.COMMA, String.valueOf(currentChar), i-1);
 			case ';' -> new Token(TokenKind.SEMICOLON, String.valueOf(currentChar), i-1);
 			default -> throw new RuntimeException("Unknown token: " + currentChar);
 			};

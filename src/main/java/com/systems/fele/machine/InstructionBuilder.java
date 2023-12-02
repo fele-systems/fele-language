@@ -7,6 +7,7 @@ import com.systems.fele.machine.instr.AddInstr;
 import com.systems.fele.machine.instr.CallInstr;
 import com.systems.fele.machine.instr.CastInstr;
 import com.systems.fele.machine.instr.DivInstr;
+import com.systems.fele.machine.instr.LoadAInstr;
 import com.systems.fele.machine.instr.LoadCInstr;
 import com.systems.fele.machine.instr.LoadLInstr;
 import com.systems.fele.machine.instr.MulInstr;
@@ -15,6 +16,7 @@ import com.systems.fele.machine.instr.SubInstr;
 import com.systems.fele.syntax.AbstractSyntaxTree;
 import com.systems.fele.syntax.Context;
 import com.systems.fele.syntax.ParseContext;
+import com.systems.fele.syntax.function.FunctionParameter;
 import com.systems.fele.syntax.function.FunctionSymbol;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
 import com.systems.fele.syntax.tree.AssignmentNode;
@@ -91,7 +93,16 @@ public class InstructionBuilder {
 		else if (node instanceof IdentifierReferenceNode identifierRef)
 		{
 			var sym = context.findSymbol(identifierRef.getSourceToken().text());
-			var instr = new LoadLInstr(identifierRef.evaluateType(context).instrType(), identifierRef, amContext.getLocalIndex(sym.getName()));
+			AbstractMachineInstruction instr;
+			
+			if (sym instanceof LocalVariableSymbol) {
+				instr = new LoadLInstr(identifierRef.evaluateType(context).instrType(), identifierRef, amContext.getLocalIndex(sym.getName()));
+			} else if (sym instanceof FunctionParameter p) {
+				instr = new LoadAInstr(identifierRef.evaluateType(context).instrType(), identifierRef, p.getIndex());
+			} else {
+				throw new RuntimeException("Unknown identififer symbol type: " + sym.getClass());
+			}
+				
 			instructions.add(instr);
 		}
 		else if (node instanceof  AssignmentNode assign)

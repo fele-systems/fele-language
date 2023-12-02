@@ -3,6 +3,7 @@ package com.systems.fele.syntax;
 import java.util.Collection;
 
 import com.systems.fele.machine.AbstractMachineType;
+import com.systems.fele.syntax.function.FunctionSymbol;
 
 public class ParseContext implements Context {
 	public enum ContextType {

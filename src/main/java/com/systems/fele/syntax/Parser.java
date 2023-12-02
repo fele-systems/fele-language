@@ -11,6 +11,7 @@ import com.systems.fele.machine.AbstractMachineFunction;
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.ParseContext.ContextType;
 import com.systems.fele.syntax.function.FunctionParameter;
+import com.systems.fele.syntax.function.FunctionSymbol;
 import com.systems.fele.syntax.tree.AbstractSyntaxTreeNode;
 import com.systems.fele.syntax.tree.AssignmentNode;
 import com.systems.fele.syntax.tree.BinaryOperatorNode;
@@ -27,9 +28,16 @@ public class Parser {
 	private final List<Token> tokens = new ArrayList<>();
 	private int tokenIndex = 0;
 	private final Lexer lexer;
-	
-	public Parser(String source) {
+	private final String fileName;
+
+
+	public Parser(String fileName, String source) {
 		this.lexer = new Lexer(source);
+		this.fileName = fileName;
+	}
+
+	public Parser(String source) {
+		this("inline", source);
 	}
 	
 	public AbstractSyntaxTree parseGlobals() {
@@ -43,7 +51,7 @@ public class Parser {
 		var main = new ParseContext("main", compileUnit, ContextType.FUNCTION);
 		var ast =  new AbstractSyntaxTree(parseNext(), main);
 		var symbol = compileUnit.defineFunction("main",
-				Arrays.asList(new FunctionParameter(0, "args", AbstractMachineType.I32)),
+				Arrays.asList(new FunctionParameter(0, "args", AbstractMachineType.I32, compileUnit)),
 				AbstractMachineType.I32,
 				new AbstractMachineFunction(program.getMachine(), ast, ast.globalContext));
 		main.setSymbol(symbol);
@@ -51,22 +59,32 @@ public class Parser {
 	}
 
 	public void parseSource(Program program) {
-		var parseContext = new CompileUnit("global", program);
-		program.addCompileUnit(parseContext);
+		var compileUnit = new CompileUnit(fileName, program);
+		program.addCompileUnit(compileUnit);
 		while(current().kind() != TokenKind.EOF) {
 			
+			// TODO: Put this in a separated method
 			if (current().kind() == TokenKind.IDENTIFIER && next().kind() == TokenKind.IDENTIFIER) {
 				// It may be a function declararion!
 				var returnType = fetchToken();
 				var functionName = fetchToken();
-				var functionContext = new ParseContext(functionName.text(), parseContext, ParseContext.ContextType.FUNCTION);
+				var functionContext = new ParseContext(functionName.text(), compileUnit, ParseContext.ContextType.FUNCTION);
 				
 				if (current().kind() == TokenKind.OPEN_PARENTHESIS) {
 					advance();
-					// TODO Parse arguments
 					
-					var parameterNode = parseNextParameter();
-					
+					var parameterList = new ArrayList<FunctionParameter>();
+					int i = 0;
+					while (current().kind() != TokenKind.CLOSE_PARENTHESIS) {
+						var parameterNode = parseNextParameter();
+
+						var functionParameter = new FunctionParameter(i++, parameterNode.getName(), parameterNode.getType().evaluateType(compileUnit), compileUnit);
+						functionContext.defineSymbol(functionParameter);
+						parameterList.add(functionParameter);
+
+						// FIXME: Does not throw a error if there's no comma
+						if (current().kind() == TokenKind.COMMA) advance();
+					}
 					expectCurrent(TokenKind.CLOSE_PARENTHESIS); advance(); // Close parenthesis
 					expectCurrent(TokenKind.OPEN_BRACES); advance(); // Open braces
 					
@@ -78,7 +96,12 @@ public class Parser {
 					expectCurrent(TokenKind.CLOSE_BRACES); advance(); // Close braces
 					
 					AbstractMachineFunction amc = new AbstractMachineFunction(program.getMachine(), (List<AbstractSyntaxTreeNode>) null, functionContext);
-					functionContext.setSymbol(parseContext.defineFunction(functionName.text(), new ArrayList<>(), program.typeManager.get(returnType.text()), amc));
+
+					// parseContext is the CompileUnit. functionContext, the actual function. Do not mix those two
+					functionContext.setSymbol(compileUnit.defineFunction(functionName.text(),
+							parameterList,
+							program.typeManager.get(returnType.text()),
+							amc));
 					amc.setStatements(statements);
 				} else {
 					throw new RuntimeException("Expected open parenthesis at function declaration. Got: %s".formatted(current()));
@@ -103,7 +126,7 @@ public class Parser {
 		return new TypeExpressionNode(type, TypeExpressionNode.Modifier.NONE);
 	}
 	
-	private AbstractSyntaxTreeNode parseNextParameter() {
+	private ParameterNode parseNextParameter() {
 		var type = parseNextTypeExpression();
 		expectCurrent(TokenKind.IDENTIFIER);
 		var parameterName = current(); advance();
