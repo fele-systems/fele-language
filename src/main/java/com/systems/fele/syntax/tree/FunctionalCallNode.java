@@ -5,10 +5,10 @@ import java.util.List;
 
 import com.systems.fele.machine.AbstractMachineType;
 import com.systems.fele.syntax.Context;
-import com.systems.fele.syntax.Symbol;
 import com.systems.fele.syntax.Token;
 import com.systems.fele.syntax.function.FunctionSymbol;
 
+@Deprecated
 public class FunctionalCallNode extends AbstractSyntaxTreeNode {
 
 	private final List<AbstractSyntaxTreeNode> arguments;
@@ -20,7 +20,7 @@ public class FunctionalCallNode extends AbstractSyntaxTreeNode {
 
 	@Override
 	public void printTree(PrintStream os, String indent) {
-		
+		os.print(indent);
 	}
 
 	@Override

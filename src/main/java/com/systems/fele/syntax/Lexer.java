@@ -7,6 +7,10 @@ public class Lexer {
 	public Lexer(String source) {
 		this.source = source;
 	}
+
+	public String getSource() {
+		return source;
+	}
 	
 	public Token nextToken() {
 		if (i >= source.length()) return new Token(TokenKind.EOF, null, -1);

@@ -40,7 +40,7 @@ public class InstructionBuilder {
 		return builder.instructions.toArray(AbstractMachineInstruction[]::new);
 	}
 	
-	public static AbstractMachineInstruction[] buildNodes(AbstractMachineFunction amContext, AbstractSyntaxTreeNode nodes[], Context context) {
+	public static AbstractMachineInstruction[] buildNodes(AbstractMachineFunction amContext, AbstractSyntaxTreeNode[] nodes, Context context) {
 		var builder = new InstructionBuilder();
 		for (var node : nodes) {
 			builder.buildNextNode(amContext, node, context);
@@ -57,34 +57,11 @@ public class InstructionBuilder {
 	private void buildNextNode(AbstractMachineFunction amContext, AbstractSyntaxTreeNode node, Context context) {
 		if (node instanceof BinaryOperatorNode binaryOperator)
 		{
-			var amType = binaryOperator.evaluateType(context);
-			var instrType = amType.instrType();
-			
-			var instr = switch(binaryOperator.getOperatorType()) {
-				case PLUS -> new AddInstr(binaryOperator, instrType);
-				case MINUS -> new SubInstr(binaryOperator, instrType);
-				case STAR -> new MulInstr(binaryOperator, instrType);
-				case SLASH -> new DivInstr(binaryOperator, instrType);
-				default -> throw new IllegalArgumentException("Unexpected value: " + binaryOperator.getOperatorType());
-			};
-			
-			var lhsType = binaryOperator.getLhs().evaluateType(context);
-			var rhsType = binaryOperator.getRhs().evaluateType(context);
-			
-			// As always, push arguments onto the stack from right to left
-
-			buildNextNode(amContext, binaryOperator.getRhs(), context);
-			if (rhsType != amType) instructions.add(new CastInstr(null, rhsType.instrType(), instrType));
-			
-			buildNextNode(amContext, binaryOperator.getLhs(), context);
-			if (lhsType != amType) instructions.add(new CastInstr(null, lhsType.instrType(), instrType));
-
-			instructions.add(instr);
-		}	
+			buildBynariOperatorNodeInstruction(amContext, context, binaryOperator);
+		}
 		else if (node instanceof NumberLiteralNode numberLiteral)
 		{
-			var instr = new LoadCInstr(numberLiteral.evaluateType(context).instrType(), numberLiteral);
-			instructions.add(instr);
+			buildNumberLiteralNodeInstruction(context, numberLiteral);
 		}
 		else if (node instanceof ParenthesisNode parenthesis)
 		{
@@ -92,67 +69,114 @@ public class InstructionBuilder {
 		}
 		else if (node instanceof IdentifierReferenceNode identifierRef)
 		{
-			var sym = context.findSymbol(identifierRef.getSourceToken().text());
-			AbstractMachineInstruction instr;
-			
-			if (sym instanceof LocalVariableSymbol) {
-				instr = new LoadLInstr(identifierRef.evaluateType(context).instrType(), identifierRef, amContext.getLocalIndex(sym.getName()));
-			} else if (sym instanceof FunctionParameter p) {
-				instr = new LoadAInstr(identifierRef.evaluateType(context).instrType(), identifierRef, p.getIndex());
-			} else {
-				throw new RuntimeException("Unknown identififer symbol type: " + sym.getClass());
-			}
-				
-			instructions.add(instr);
+			buildNextIdentifierReferenceNodeInstruction(amContext, context, identifierRef);
 		}
 		else if (node instanceof  AssignmentNode assign)
 		{
-			var sym = (LocalVariableSymbol) context.defineVariable(assign.getLhs().getSourceToken().text(), assign.evaluateType(context));
-			if (sym == null) {
-				throw new RuntimeException("Could load find symbol: " + assign.toString() + " in context: " + context.getContextName());
-			}
-			
-			buildNextNode(amContext, assign.getRhs(), context);
-		
-			var storeInstr = new StoreLInstr(assign, sym.getAbstractMachineType().instrType(), amContext.getLocalIndex(sym.getName()));
-			instructions.add(storeInstr);
+			buildNextAssignmentNodeInstruction(amContext, context, assign);
 		}
 		else if (node instanceof ReturnNode returnNode)
 		{
-			if (returnNode.getExpression() != null) {
-				buildNextNode(amContext, returnNode.getExpression(), context);
-				var fSymbol = (FunctionSymbol) context.getAsSymbol();
-				var returnActualType = returnNode.getExpression().evaluateType(context);
-				var returnExpectedType = fSymbol.getReturnType();
-				
-				if (returnActualType != returnExpectedType) instructions.add(new CastInstr(null, returnActualType.instrType(), returnExpectedType.instrType()));
-			}
+			buildNextReturnNodeInstruction(amContext, context, returnNode);
 		}
 		else if (node instanceof FunctionCallNode functionCall)
 		{
-			var fSymbol = (FunctionSymbol) context.findSymbol(functionCall.getFuncitonName());
-			var args = functionCall.getArguments();
-			
-			if (args.size() != fSymbol.getParameters().size()) {
-				throw new RuntimeException("Wrong number of arguments for function call: " + functionCall.getFuncitonName() + ". Expected: " + fSymbol.getParameters().size() + " but got: " + args.size()); 
-			}
-			
-			for (int i = args.size()-1; i >= 0; i--) {
-				if (args.get(i).evaluateType(context) != fSymbol.getParameters().get(i).getType())
-					throw new RuntimeException("Wrong type!");
-				buildNextNode(amContext, args.get(i), context);
-			}
-		
-			if (fSymbol.getAbstractMachineContext().getParseContext() instanceof ParseContext parseContext
-					&& parseContext.getType() == ParseContext.ContextType.EXTERN_FUNCTION) {
-				instructions.add( fSymbol.getAbstractMachineContext().instr[0] );
-			} else {			
-				instructions.add(new CallInstr(functionCall, fSymbol));
-			}
+			buildNextFunctionCallNodeInstruction(amContext, context, functionCall);
 		}
 		else {
 			throw new IllegalArgumentException("Unexpected value: " + node);
 		}
+	}
+
+	private void buildNextFunctionCallNodeInstruction(AbstractMachineFunction amContext, Context context, FunctionCallNode functionCall) {
+		var fSymbol = (FunctionSymbol) context.findSymbol(functionCall.getFuncitonName());
+		var args = functionCall.getArguments();
+		
+		if (args.size() != fSymbol.getParameters().size()) {
+			throw new RuntimeException("Wrong number of arguments for function call: " + functionCall.getFuncitonName() + ". Expected: " + fSymbol.getParameters().size() + " but got: " + args.size()); 
+		}
+		
+		for (int i = args.size()-1; i >= 0; i--) {
+			if (args.get(i).evaluateType(context) != fSymbol.getParameters().get(i).getType())
+				throw new RuntimeException("Wrong type!");
+			buildNextNode(amContext, args.get(i), context);
+		}
+
+		if (fSymbol.getAbstractMachineContext().getParseContext() instanceof ParseContext parseContext
+				&& parseContext.getType() == ParseContext.ContextType.EXTERN_FUNCTION) {
+			instructions.add( fSymbol.getAbstractMachineContext().instr[0] );
+		} else {			
+			instructions.add(new CallInstr(functionCall, fSymbol));
+		}
+	}
+
+	private void buildNextReturnNodeInstruction(AbstractMachineFunction amContext, Context context, ReturnNode returnNode) {
+		if (returnNode.getExpression() != null) {
+			buildNextNode(amContext, returnNode.getExpression(), context);
+			var fSymbol = (FunctionSymbol) context.getAsSymbol();
+			var returnActualType = returnNode.getExpression().evaluateType(context);
+			var returnExpectedType = fSymbol.getReturnType();
+			
+			if (returnActualType != returnExpectedType) instructions.add(new CastInstr(null, returnActualType.instrType(), returnExpectedType.instrType()));
+		}
+	}
+
+	private void buildNextAssignmentNodeInstruction(AbstractMachineFunction amContext, Context context, AssignmentNode assign) {
+		var sym = (LocalVariableSymbol) context.defineVariable(assign.getLhs().getSourceToken().text(), assign.evaluateType(context));
+		if (sym == null) {
+			throw new RuntimeException("Could load find symbol: " + assign.toString() + " in context: " + context.getContextName());
+		}
+		
+		buildNextNode(amContext, assign.getRhs(), context);
+
+		var storeInstr = new StoreLInstr(assign, sym.getAbstractMachineType().instrType(), amContext.getLocalIndex(sym.getName()));
+		instructions.add(storeInstr);
+	}
+
+	private void buildNextIdentifierReferenceNodeInstruction(AbstractMachineFunction amContext, Context context, IdentifierReferenceNode identifierRef) {
+		var sym = context.findSymbol(identifierRef.getSourceToken().text());
+		AbstractMachineInstruction instr;
+		
+		if (sym instanceof LocalVariableSymbol) {
+			instr = new LoadLInstr(identifierRef.evaluateType(context).instrType(), identifierRef, amContext.getLocalIndex(sym.getName()));
+		} else if (sym instanceof FunctionParameter p) {
+			instr = new LoadAInstr(identifierRef.evaluateType(context).instrType(), identifierRef, p.getIndex());
+		} else {
+			throw new RuntimeException("Unknown identififer symbol type: " + sym.getClass());
+		}
+			
+		instructions.add(instr);
+	}
+
+	private void buildNumberLiteralNodeInstruction(Context context, NumberLiteralNode numberLiteral) {
+		var instr = new LoadCInstr(numberLiteral.evaluateType(context).instrType(), numberLiteral);
+		instructions.add(instr);
+	}
+
+	private void buildBynariOperatorNodeInstruction(AbstractMachineFunction amContext, Context context, BinaryOperatorNode binaryOperator) {
+		var amType = binaryOperator.evaluateType(context);
+		var instrType = amType.instrType();
+		
+		var instr = switch(binaryOperator.getOperatorType()) {
+			case PLUS -> new AddInstr(binaryOperator, instrType);
+			case MINUS -> new SubInstr(binaryOperator, instrType);
+			case STAR -> new MulInstr(binaryOperator, instrType);
+			case SLASH -> new DivInstr(binaryOperator, instrType);
+			default -> throw new IllegalArgumentException("Unexpected value: " + binaryOperator.getOperatorType());
+		};
+		
+		var lhsType = binaryOperator.getLhs().evaluateType(context);
+		var rhsType = binaryOperator.getRhs().evaluateType(context);
+		
+		// As always, push arguments onto the stack from right to left
+
+		buildNextNode(amContext, binaryOperator.getRhs(), context);
+		if (rhsType != amType) instructions.add(new CastInstr(null, rhsType.instrType(), instrType));
+		
+		buildNextNode(amContext, binaryOperator.getLhs(), context);
+		if (lhsType != amType) instructions.add(new CastInstr(null, lhsType.instrType(), instrType));
+
+		instructions.add(instr);
 	}
 
 }

@@ -3,7 +3,6 @@ package com.systems.fele.machine;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.systems.fele.machine.instr.RetInstr;
 import com.systems.fele.syntax.AbstractSyntaxTree;
@@ -89,6 +88,7 @@ public class AbstractMachineFunction {
 		var frame = createStackFrame();
 		machine.pushStackFrame(frame);
 		for (var i : instr) {
+			// TODO? The machine should be the one to execute the instructions, not the function
 			i.execute(this, frame);
 			if (i instanceof RetInstr) {
 				break;

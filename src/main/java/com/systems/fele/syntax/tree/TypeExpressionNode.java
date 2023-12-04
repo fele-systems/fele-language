@@ -35,7 +35,7 @@ public class TypeExpressionNode extends AbstractSyntaxTreeNode {
     public AbstractMachineType evaluateType(Context context) {
         var symbol = context.findSymbol(getSourceToken().text());
         if (symbol == null) {
-            throw new RuntimeException(symbol.getName() + " does not exist.");
+            throw new RuntimeException(getSourceToken().text() + " does not exist.");
         } else if (symbol.getSymbolType() != SymbolType.type_definition) {
             throw new RuntimeException(symbol.getName() + " does not name a type. It is a " + symbol.getSymbolType());
         } else {
